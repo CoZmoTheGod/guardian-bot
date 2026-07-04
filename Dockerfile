@@ -16,6 +16,9 @@ RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_
 ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
 # We supply yt-dlp above, so skip youtube-dl-exec's bundled binary download.
 ENV YOUTUBE_DL_SKIP_DOWNLOAD=true
+# Point PyInstaller's temp extraction dir at /tmp (always exec-friendly in proper
+# Docker containers). On Pelican nodes with noexec /tmp, override via the panel.
+ENV TMPDIR=/tmp
 
 # Install dependencies first for better layer caching.
 COPY package*.json ./

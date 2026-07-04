@@ -207,6 +207,19 @@ class GuildMusicPlayer {
     this._destroyStreams();
 
     logger.debug(`[music] yt-dlp spawn for ${track.url} (seek=${seekSeconds || 0})`);
+
+    // PyInstaller-based yt-dlp binaries (the prebuilt `yt-dlp_linux` we
+    // download in the Dockerfile / egg) decompress themselves to a temp
+    // directory on every run. Pelican containers often mount /tmp with
+    // `noexec`, causing the "Failed to extract" decompression errors.
+    // Pointing TMPDIR at the container's home dir avoids that restriction.
+    const ytEnv = {
+      ...process.env,
+      TMPDIR: process.env.HOME || process.env.TMPDIR || '/home/container',
+      TEMP: process.env.HOME || process.env.TEMP || '/home/container',
+      TMP: process.env.HOME || process.env.TMP || '/home/container',
+    };
+
     const subprocess = youtubedl.exec(
       track.url,
       {
@@ -216,7 +229,7 @@ class GuildMusicPlayer {
         noWarnings: true,
         noPlaylist: true,
       },
-      { stdio: ['ignore', 'pipe', 'pipe'] }
+      { stdio: ['ignore', 'pipe', 'pipe'], env: ytEnv }
     );
     // Prevent an unhandled rejection when we kill the process on skip/stop.
     if (typeof subprocess.catch === 'function') subprocess.catch(() => {});

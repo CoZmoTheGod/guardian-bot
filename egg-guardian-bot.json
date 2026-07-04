@@ -13,7 +13,7 @@
         "Node.js 20": "ghcr.io/parkervcp/yolks:nodejs_20"
     },
     "file_denylist": [],
-    "startup": "export YT_DLP_PATH=\"$(pwd)/yt-dlp\"; if [ -f \"$YT_DLP_PATH\" ]; then \"$YT_DLP_PATH\" -U || true; fi; if [ \"${AUTO_UPDATE}\" = \"1\" ] && [ -d .git ]; then git pull; fi; npm install --no-audit --no-fund && npm start",
+    "startup": "export YT_DLP_PATH=\"$(pwd)/yt-dlp\"; export TMPDIR=\"${YTDLP_TMPDIR:-/home/container}\"; export TEMP=\"$TMPDIR\"; export TMP=\"$TMPDIR\"; if [ -f \"$YT_DLP_PATH\" ]; then \"$YT_DLP_PATH\" -U || true; fi; if [ \"${AUTO_UPDATE}\" = \"1\" ] && [ -d .git ]; then git pull; fi; npm install --no-audit --no-fund && npm start",
     "config": {
         "files": "{}",
         "startup": "{\r\n    \"done\": \"Guardian bot is online\"\r\n}",
@@ -126,6 +126,16 @@
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "yt-dlp Temp Directory",
+            "description": "Directory yt-dlp uses to extract its PyInstaller bundle. Leave blank to use /home/container (default, safe on Pelican). Change to /tmp only if your node has a large exec-enabled /tmp.",
+            "env_variable": "YTDLP_TMPDIR",
+            "default_value": "/home/container",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
             "field_type": "text"
         },
         {
