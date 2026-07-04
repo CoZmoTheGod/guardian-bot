@@ -162,4 +162,27 @@ function buildChallenge({ mode, guildId, userId, code, guildName, timeoutSec, te
   return { embeds: [embed], components: [row], files };
 }
 
-module.exports = { generateCode, createImageBuffer, buildChallenge, hasCanvas: Boolean(canvasLib && captchaFont) };
+/**
+ * Build the tiny public "gate" message posted in the verification channel.
+ * The gate is visible to everyone but the button only works for `userId`;
+ * clicking it triggers the ephemeral challenge (or grants the role directly
+ * in button mode).
+ */
+function buildGate({ guildId, userId, mode, timeoutSec }) {
+  const minutes = Math.max(1, Math.round(timeoutSec / 60));
+  const isButton = mode === 'button';
+  const button = new ButtonBuilder()
+    .setCustomId(`verify:start:${guildId}:${userId}`)
+    .setLabel(isButton ? "I'm human" : 'Start verification')
+    .setEmoji(isButton ? '✅' : '🛡️')
+    .setStyle(isButton ? ButtonStyle.Success : ButtonStyle.Primary);
+  return {
+    content:
+      `👋 <@${userId}> Welcome! Click below to verify.` +
+      ` *(You have ${minutes} minute${minutes === 1 ? '' : 's'} — this button is only usable by you.)*`,
+    components: [new ActionRowBuilder().addComponents(button)],
+    allowedMentions: { users: [userId] },
+  };
+}
+
+module.exports = { generateCode, createImageBuffer, buildChallenge, buildGate, hasCanvas: Boolean(canvasLib && captchaFont) };

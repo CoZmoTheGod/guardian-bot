@@ -11,6 +11,7 @@ const {
   TextInputBuilder,
   TextInputStyle,
   ActionRowBuilder,
+  ChannelType,
 } = require('discord.js');
 const { PendingVerification, getGuildSettings } = require('../../database');
 const { sendGuildLog, logger } = require('../../logger');
@@ -76,20 +77,20 @@ async function startVerification(member) {
   const timeoutMs = settings.verifyTimeoutSec * 1000;
   const expiresAt = new Date(Date.now() + timeoutMs);
 
-  const challenge = captcha.buildChallenge({
-    mode: settings.captchaMode,
-    guildId: guild.id,
-    userId: member.id,
-    code,
-    guildName: guild.name,
-    timeoutSec: settings.verifyTimeoutSec,
-  });
-
   let promptMessageId = null;
   let channelId = null;
   let deliveredViaDm = false;
 
   if (settings.captchaDelivery === 'dm') {
+    // DM delivery is inherently private — send the full challenge directly.
+    const challenge = captcha.buildChallenge({
+      mode: settings.captchaMode,
+      guildId: guild.id,
+      userId: member.id,
+      code,
+      guildName: guild.name,
+      timeoutSec: settings.verifyTimeoutSec,
+    });
     try {
       const dm = await member.send(challenge);
       promptMessageId = dm.id;
@@ -100,18 +101,26 @@ async function startVerification(member) {
   }
 
   if (!deliveredViaDm) {
+    // Channel delivery: post a compact PUBLIC "gate" message that only the
+    // joining member can click. Clicking it will show the actual captcha
+    // ephemerally (or grant the role directly in button mode) so no other
+    // member ever sees the code / captcha image.
     const channel =
       (settings.verificationChannelId &&
         (guild.channels.cache.get(settings.verificationChannelId) ||
           (await guild.channels.fetch(settings.verificationChannelId).catch(() => null)))) ||
       null;
     if (channel?.isTextBased?.()) {
-      const msg = await channel
-        .send({ content: `<@${member.id}>`, ...challenge })
-        .catch((e) => {
-          logger.warn(`Failed to post verification prompt: ${e.message}`);
-          return null;
-        });
+      const gate = captcha.buildGate({
+        guildId: guild.id,
+        userId: member.id,
+        mode: settings.captchaMode,
+        timeoutSec: settings.verifyTimeoutSec,
+      });
+      const msg = await channel.send(gate).catch((e) => {
+        logger.warn(`Failed to post verification gate: ${e.message}`);
+        return null;
+      });
       if (msg) {
         promptMessageId = msg.id;
         channelId = channel.id;
@@ -199,6 +208,39 @@ async function handleButton(interaction) {
       .setRequired(true);
     modal.addComponents(new ActionRowBuilder().addComponents(input));
     return interaction.showModal(modal);
+  }
+
+  // Public "gate" button clicked by the joining member. For button mode we
+  // grant the role directly. For text/image mode we reply ephemerally with
+  // the actual challenge so no other member sees the code / captcha image.
+  if (kind === 'start') {
+    const settings = await getGuildSettings(guildId);
+    const pending = await PendingVerification.findOne({ where: { guildId, userId } });
+    if (!pending) {
+      return interaction.reply({
+        content: 'Your verification has expired or was already completed. Please contact staff if you still lack access.',
+        ephemeral: true,
+      });
+    }
+
+    if (settings.captchaMode === 'button') {
+      return grant(interaction, guildId, userId);
+    }
+
+    const challenge = captcha.buildChallenge({
+      mode: settings.captchaMode,
+      guildId,
+      userId,
+      code: pending.code,
+      guildName: interaction.guild?.name || 'this server',
+      timeoutSec: settings.verifyTimeoutSec,
+    });
+    return interaction.reply({
+      embeds: challenge.embeds,
+      components: challenge.components,
+      files: challenge.files,
+      ephemeral: true,
+    });
   }
 
   if (kind === 'human') {
