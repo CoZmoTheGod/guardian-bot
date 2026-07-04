@@ -1,6 +1,6 @@
 'use strict';
 
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const { getGuildSettings, updateGuildSettings, invalidateGuildSettings, GuildSettings } = require('../../database');
 const { embeds, replyError } = require('../../utils/embeds');
 
@@ -63,7 +63,7 @@ module.exports = {
             { name: 'Welcome / Leave', value: `${s.welcomeEnabled ? '✅' : '❌'} / ${s.leaveEnabled ? '✅' : '❌'}`, inline: true }
           ),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -72,7 +72,7 @@ module.exports = {
       await updateGuildSettings(guildId, { logChannelId: channel?.id ?? null });
       return interaction.reply({
         embeds: [embeds.success('Log channel updated', channel ? `Logs will go to ${channel}.` : 'Log channel cleared.')],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -81,7 +81,7 @@ module.exports = {
       await updateGuildSettings(guildId, { djRoleId: role?.id ?? null });
       return interaction.reply({
         embeds: [embeds.success('DJ role updated', role ? `Music control now requires ${role}.` : 'DJ role cleared — everyone can control music.')],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -90,7 +90,7 @@ module.exports = {
       await updateGuildSettings(guildId, { backupPermRoleId: role?.id ?? null });
       return interaction.reply({
         embeds: [embeds.success('Backup role updated', role ? `${role} can now manage backups.` : 'Backup role cleared — owner/admins only.')],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -99,7 +99,7 @@ module.exports = {
       await updateGuildSettings(guildId, { sponsorBlockEnabled: enabled });
       return interaction.reply({
         embeds: [embeds.success('SponsorBlock updated', `Auto-skip is now **${enabled ? 'enabled' : 'disabled'}** for new tracks.`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -110,7 +110,7 @@ module.exports = {
       await GuildSettings.destroy({ where: { guildId } });
       invalidateGuildSettings(guildId);
       await getGuildSettings(guildId); // recreate defaults
-      return interaction.reply({ embeds: [embeds.success('Settings reset', 'All settings were restored to defaults.')], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.success('Settings reset', 'All settings were restored to defaults.')], flags: MessageFlags.Ephemeral });
     }
 
     return replyError(interaction, 'Unknown subcommand', 'That subcommand is not recognised.');

@@ -12,15 +12,37 @@ const {
   TextInputStyle,
   ActionRowBuilder,
   ChannelType,
+  MessageFlags,
 } = require('discord.js');
 const { PendingVerification, getGuildSettings } = require('../../database');
 const { sendGuildLog, logger } = require('../../logger');
 const captcha = require('./captcha');
 
 const MAX_ATTEMPTS = 3;
+const EPHEMERAL = MessageFlags.Ephemeral; // 1 << 6
 const timers = new Map(); // `${guildId}:${userId}` -> Timeout
 
 const key = (guildId, userId) => `${guildId}:${userId}`;
+
+/**
+ * Reply to an interaction ephemerally regardless of whether it's already
+ * been deferred, replied to, or is still fresh. Discord's REST API returns
+ * 10062 (Unknown interaction) if the initial acknowledgement doesn't happen
+ * within ~3s, and 40060 (already acknowledged) if we reply twice — this
+ * helper protects against both.
+ */
+async function respond(interaction, opts) {
+  const payload = { flags: EPHEMERAL, ...opts };
+  try {
+    if (interaction.deferred) return await interaction.editReply(payload);
+    if (interaction.replied) return await interaction.followUp(payload);
+    return await interaction.reply(payload);
+  } catch (err) {
+    // Interaction likely expired; nothing else useful we can do.
+    logger.debug(`verification respond failed: ${err.message}`);
+    return null;
+  }
+}
 
 function clearTimer(guildId, userId) {
   const k = key(guildId, userId);
@@ -151,21 +173,20 @@ async function startVerification(member) {
 async function grant(interaction, guildId, userId) {
   const guild = interaction.guild || (await interaction.client.guilds.fetch(guildId).catch(() => null));
   if (!guild) {
-    return interaction.reply({ content: '❌ Could not find the server. Please contact staff.', ephemeral: true });
+    return respond(interaction, { content: '❌ Could not find the server. Please contact staff.' });
   }
   const settings = await getGuildSettings(guildId);
   const member = await guild.members.fetch(userId).catch(() => null);
   if (!member) {
-    return interaction.reply({ content: '❌ Could not find your membership. Please rejoin.', ephemeral: true });
+    return respond(interaction, { content: '❌ Could not find your membership. Please rejoin.' });
   }
 
   try {
     await member.roles.add(settings.verifiedRoleId, 'Passed verification');
   } catch (err) {
     logger.error(`Failed to add verified role in ${guild.id}: ${err.message}`);
-    return interaction.reply({
+    return respond(interaction, {
       content: '❌ I could not assign the verified role. Please contact staff (check my role position).',
-      ephemeral: true,
     });
   }
 
@@ -180,21 +201,20 @@ async function grant(interaction, guildId, userId) {
     fields: [{ name: 'Member', value: `<@${userId}>`, inline: true }],
   });
 
-  return interaction.reply({ content: `✅ You are now verified in **${guild.name}**. Welcome!`, ephemeral: true });
+  return respond(interaction, { content: `✅ You are now verified in **${guild.name}**. Welcome!` });
 }
 
 /** Route a verification button click. */
 async function handleButton(interaction) {
   const [, kind, guildId, userId, extra] = interaction.customId.split(':');
   if (interaction.user.id !== userId) {
-    return interaction.reply({ content: 'This verification button is not for you.', ephemeral: true });
+    return respond(interaction, { content: 'This verification button is not for you.' });
   }
 
   // Test/preview mode: no DB, no role change, no kick.
   if (kind === 'testhuman') {
-    return interaction.reply({
+    return respond(interaction, {
       content: '✅ **Test passed** — the button captcha works. No changes were made to your account.',
-      ephemeral: true,
     });
   }
   if (kind === 'testcode') {
@@ -213,13 +233,17 @@ async function handleButton(interaction) {
   // Public "gate" button clicked by the joining member. For button mode we
   // grant the role directly. For text/image mode we reply ephemerally with
   // the actual challenge so no other member sees the code / captcha image.
+  //
+  // Both paths do slow work (DB read, member/role fetch, message deletion,
+  // guild-log embed send) that can easily exceed Discord's 3-second
+  // acknowledgement deadline — so defer FIRST.
   if (kind === 'start') {
+    await interaction.deferReply({ flags: EPHEMERAL }).catch(() => null);
     const settings = await getGuildSettings(guildId);
     const pending = await PendingVerification.findOne({ where: { guildId, userId } });
     if (!pending) {
-      return interaction.reply({
+      return respond(interaction, {
         content: 'Your verification has expired or was already completed. Please contact staff if you still lack access.',
-        ephemeral: true,
       });
     }
 
@@ -235,19 +259,20 @@ async function handleButton(interaction) {
       guildName: interaction.guild?.name || 'this server',
       timeoutSec: settings.verifyTimeoutSec,
     });
-    return interaction.reply({
+    return respond(interaction, {
       embeds: challenge.embeds,
       components: challenge.components,
       files: challenge.files,
-      ephemeral: true,
     });
   }
 
   if (kind === 'human') {
+    await interaction.deferReply({ flags: EPHEMERAL }).catch(() => null);
     return grant(interaction, guildId, userId);
   }
 
   if (kind === 'code') {
+    // showModal must NOT be preceded by defer/reply — it's its own response type.
     const modal = new ModalBuilder().setCustomId(`verify:modal:${guildId}:${userId}`).setTitle('Verification');
     const input = new TextInputBuilder()
       .setCustomId('code')
@@ -260,36 +285,36 @@ async function handleButton(interaction) {
     return interaction.showModal(modal);
   }
 
-  return interaction.reply({ content: 'Unknown verification action.', ephemeral: true });
+  return respond(interaction, { content: 'Unknown verification action.' });
 }
 
 /** Route a verification modal submission. */
 async function handleModal(interaction) {
   const [, kind, guildId, userId, extra] = interaction.customId.split(':');
   if (interaction.user.id !== userId) {
-    return interaction.reply({ content: 'This verification is not for you.', ephemeral: true });
+    return respond(interaction, { content: 'This verification is not for you.' });
   }
 
   // Test/preview mode: validate against the code embedded in the customId.
   if (kind === 'testmodal') {
     const guess = interaction.fields.getTextInputValue('code').trim().toUpperCase();
     if (guess === String(extra || '').toUpperCase()) {
-      return interaction.reply({
+      return respond(interaction, {
         content: '✅ **Test passed** — the code captcha works. No changes were made to your account.',
-        ephemeral: true,
       });
     }
-    return interaction.reply({
+    return respond(interaction, {
       content: `❌ Incorrect (test). The code was \`${extra}\`. Run \`/security verification test\` to try again.`,
-      ephemeral: true,
     });
   }
 
+  // Real modal: DB lookup + role grant can take longer than 3s — defer now.
+  await interaction.deferReply({ flags: EPHEMERAL }).catch(() => null);
+
   const pending = await PendingVerification.findOne({ where: { guildId, userId } });
   if (!pending) {
-    return interaction.reply({
+    return respond(interaction, {
       content: 'Your verification has expired or was already completed. Please contact staff if you still lack access.',
-      ephemeral: true,
     });
   }
 
@@ -302,13 +327,12 @@ async function handleModal(interaction) {
   await pending.save();
 
   if (pending.attempts >= MAX_ATTEMPTS) {
-    await interaction.reply({ content: '❌ Too many incorrect attempts.', ephemeral: true });
+    await respond(interaction, { content: '❌ Too many incorrect attempts.' });
     return failVerification(interaction.client, guildId, userId, 'Failed captcha (too many attempts)');
   }
 
-  return interaction.reply({
+  return respond(interaction, {
     content: `❌ Incorrect code. Attempts remaining: **${MAX_ATTEMPTS - pending.attempts}**.`,
-    ephemeral: true,
   });
 }
 

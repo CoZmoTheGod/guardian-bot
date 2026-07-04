@@ -4,8 +4,7 @@ const {
   SlashCommandBuilder,
   PermissionFlagsBits,
   EmbedBuilder,
-  ChannelType,
-} = require('discord.js');
+  ChannelType, MessageFlags } = require('discord.js');
 const { ReactionRoleMessage, ReactionRoleMapping, updateGuildSettings, getGuildSettings } = require('../../database');
 const { embeds, replyError, COLORS } = require('../../utils/embeds');
 const { logger } = require('../../logger');
@@ -105,7 +104,7 @@ module.exports = {
       await updateGuildSettings(guild.id, { reactRoleChannelId: channel.id });
       return interaction.reply({
         embeds: [embeds.success('React-role channel set', `Panels will default to ${channel}.`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -151,7 +150,7 @@ module.exports = {
             `Posted in ${target}.\nAdd roles with:\n\`/reactionrole add message_id:${message.id} emoji:<emoji> role:@role\``
           ),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -207,7 +206,7 @@ module.exports = {
 
       return interaction.reply({
         embeds: [embeds.success('Mapping added', `${emoji.display} now grants ${role}.`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -231,7 +230,7 @@ module.exports = {
         await message.reactions.cache.find((r) => (r.emoji.id || r.emoji.name) === emoji.key)?.remove().catch(() => {});
       }
 
-      return interaction.reply({ embeds: [embeds.success('Mapping removed', 'The emoji mapping was removed.')], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.success('Mapping removed', 'The emoji mapping was removed.')], flags: MessageFlags.Ephemeral });
     }
 
     // ---- delete ---------------------------------------------------------
@@ -246,21 +245,21 @@ module.exports = {
       const message = await fetchPanelMessage(guild, panel);
       await message?.delete().catch(() => {});
 
-      return interaction.reply({ embeds: [embeds.success('Panel deleted', 'The reaction-role panel was removed.')], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.success('Panel deleted', 'The reaction-role panel was removed.')], flags: MessageFlags.Ephemeral });
     }
 
     // ---- list -----------------------------------------------------------
     if (sub === 'list') {
       const panels = await ReactionRoleMessage.findAll({ where: { guildId: guild.id } });
       if (panels.length === 0) {
-        return interaction.reply({ embeds: [embeds.info('Reaction-role panels', 'No panels configured yet.')], ephemeral: true });
+        return interaction.reply({ embeds: [embeds.info('Reaction-role panels', 'No panels configured yet.')], flags: MessageFlags.Ephemeral });
       }
       const lines = [];
       for (const panel of panels) {
         const count = await ReactionRoleMapping.count({ where: { messageId: panel.messageId } });
         lines.push(`• **${panel.title || 'Panel'}** — <#${panel.channelId}> — \`${panel.messageId}\` (${count} role(s))`);
       }
-      return interaction.reply({ embeds: [embeds.info('Reaction-role panels', lines.join('\n'))], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.info('Reaction-role panels', lines.join('\n'))], flags: MessageFlags.Ephemeral });
     }
 
     return replyError(interaction, 'Unknown subcommand', 'That subcommand is not recognised.');

@@ -1,6 +1,6 @@
 'use strict';
 
-const { Events } = require('discord.js');
+const { Events, MessageFlags } = require('discord.js');
 const { logger } = require('../logger');
 const { replyError } = require('../utils/embeds');
 const verification = require('../modules/security/verification');
@@ -22,7 +22,7 @@ module.exports = {
       if (!interaction.isChatInputCommand()) return;
 
       if (!interaction.inGuild()) {
-        return interaction.reply({ content: 'Guardian commands can only be used inside a server.', ephemeral: true });
+        return interaction.reply({ content: 'Guardian commands can only be used inside a server.', flags: MessageFlags.Ephemeral });
       }
 
       const command = client.commands.get(interaction.commandName);

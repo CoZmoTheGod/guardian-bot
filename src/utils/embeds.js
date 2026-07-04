@@ -1,6 +1,6 @@
 'use strict';
 
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, MessageFlags } = require('discord.js');
 
 const COLORS = {
   primary: 0x5865f2,
@@ -31,7 +31,7 @@ const embeds = {
  * handling whether the interaction was already deferred/replied.
  */
 async function replyError(interaction, title, description) {
-  const payload = { embeds: [embeds.error(title, description)], ephemeral: true };
+  const payload = { embeds: [embeds.error(title, description)], flags: MessageFlags.Ephemeral };
   try {
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(payload);

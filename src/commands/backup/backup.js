@@ -5,8 +5,7 @@ const {
   PermissionFlagsBits,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle,
-} = require('discord.js');
+  ButtonStyle, MessageFlags } = require('discord.js');
 const { Backup } = require('../../database');
 const backupManager = require('../../modules/backup/BackupManager');
 const { canManageBackups } = require('../../utils/permissions');
@@ -65,7 +64,7 @@ module.exports = {
     // ---- create ---------------------------------------------------------
     if (sub === 'create') {
       const name = interaction.options.getString('name', true).trim();
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
       const existingCount = await Backup.count({ where: { guildId: guild.id } });
       const existing = await Backup.findOne({ where: { guildId: guild.id, name } });
@@ -109,14 +108,14 @@ module.exports = {
     if (sub === 'list') {
       const rows = await Backup.findAll({ where: { guildId: guild.id }, order: [['createdAt', 'DESC']] });
       if (rows.length === 0) {
-        return interaction.reply({ embeds: [embeds.info('Backups', 'No backups saved yet. Use `/backup create`.')], ephemeral: true });
+        return interaction.reply({ embeds: [embeds.info('Backups', 'No backups saved yet. Use `/backup create`.')], flags: MessageFlags.Ephemeral });
       }
       const lines = rows.map((r) => {
         const c = backupManager.describe(r.data);
         const when = `<t:${Math.floor(new Date(r.createdAt).getTime() / 1000)}:R>`;
         return `• **${r.name}** — ${c.channels} channels, ${c.roles} roles — ${when}`;
       });
-      return interaction.reply({ embeds: [embeds.info(`Backups (${rows.length})`, lines.join('\n'))], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.info(`Backups (${rows.length})`, lines.join('\n'))], flags: MessageFlags.Ephemeral });
     }
 
     // ---- info -----------------------------------------------------------
@@ -140,7 +139,7 @@ module.exports = {
               { name: 'Emoji', value: String(c.emojis), inline: true }
             ),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -150,7 +149,7 @@ module.exports = {
       const row = await Backup.findOne({ where: { guildId: guild.id, name } });
       if (!row) return replyError(interaction, 'Not found', `No backup named **${name}**.`);
       await row.destroy();
-      return interaction.reply({ embeds: [embeds.success('Backup deleted', `Deleted backup **${name}**.`)], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.success('Backup deleted', `Deleted backup **${name}**.`)], flags: MessageFlags.Ephemeral });
     }
 
     // ---- load (with confirmation) --------------------------------------
@@ -178,7 +177,7 @@ module.exports = {
       const prompt = await interaction.reply({
         embeds: [embeds.warn(`Restore backup "${name}"?`, `${warning}\n\nThis cannot be undone. Confirm within 60 seconds.`)],
         components: [rowBtns],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
         fetchReply: true,
       });
 

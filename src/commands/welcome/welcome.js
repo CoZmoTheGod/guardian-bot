@@ -1,6 +1,6 @@
 'use strict';
 
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const { getGuildSettings, updateGuildSettings } = require('../../database');
 const { embeds, replyError } = require('../../utils/embeds');
 const { applyPlaceholders } = require('../../utils/time');
@@ -80,7 +80,7 @@ module.exports = {
       await updateGuildSettings(guildId, { welcomeEnabled: true, welcomeChannelId: channel.id, welcomeMessage: message });
       return interaction.reply({
         embeds: [embeds.success('Join message set', `New members will be greeted in ${channel}.`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -90,7 +90,7 @@ module.exports = {
       await updateGuildSettings(guildId, { leaveEnabled: true, leaveChannelId: channel.id, leaveMessage: message });
       return interaction.reply({
         embeds: [embeds.success('Leave message set', `Departures will be announced in ${channel}.`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -99,7 +99,7 @@ module.exports = {
       await updateGuildSettings(guildId, { welcomeDmEnabled: true, welcomeDmMessage: message });
       return interaction.reply({
         embeds: [embeds.success('Welcome DM set', 'New members will receive this DM when they join.')],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -115,7 +115,7 @@ module.exports = {
       await updateGuildSettings(guildId, { [field]: enabled });
       return interaction.reply({
         embeds: [embeds.success('Updated', `**${feature}** is now **${enabled ? 'enabled' : 'disabled'}**.`)],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -130,7 +130,7 @@ module.exports = {
       }
       const content = applyPlaceholders(template, { member: interaction.member, guild });
       await channel.send({ content, allowedMentions: { parse: [] } }).catch(() => {});
-      return interaction.reply({ embeds: [embeds.success('Test sent', `Sent a preview ${type} message to ${channel}.`)], ephemeral: true });
+      return interaction.reply({ embeds: [embeds.success('Test sent', `Sent a preview ${type} message to ${channel}.`)], flags: MessageFlags.Ephemeral });
     }
 
     if (sub === 'status') {
@@ -144,7 +144,7 @@ module.exports = {
             { name: 'Ghost-ping detection', value: s.ghostPingPrevention ? '✅ On' : '❌ Off', inline: true }
           ),
         ],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 

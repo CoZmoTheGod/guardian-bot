@@ -1,6 +1,6 @@
 'use strict';
 
-const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, MessageFlags } = require('discord.js');
 const { getGuildSettings, updateGuildSettings } = require('../../database');
 const { embeds, replyError } = require('../../utils/embeds');
 const captcha = require('../../modules/security/captcha');
@@ -138,13 +138,13 @@ module.exports = {
                 `Verified role: ${role}\nChannel: ${channel}\nTimeout: **${timeout}s** → action: **${action}**.${note}`
             ),
           ],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       if (sub === 'disable') {
         await updateGuildSettings(guildId, { verificationEnabled: false });
-        return interaction.reply({ embeds: [embeds.success('Verification disabled', 'New members will no longer be challenged.')], ephemeral: true });
+        return interaction.reply({ embeds: [embeds.success('Verification disabled', 'New members will no longer be challenged.')], flags: MessageFlags.Ephemeral });
       }
 
       if (sub === 'status') {
@@ -161,7 +161,7 @@ module.exports = {
               { name: 'On fail', value: s.unverifiedAction, inline: true }
             ),
           ],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -182,7 +182,7 @@ module.exports = {
           embeds: challenge.embeds,
           components: challenge.components,
           files: challenge.files,
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }
@@ -207,7 +207,7 @@ module.exports = {
               `Trigger: **${s.raidJoinThreshold}** joins within **${s.raidWindowSec}s** → action **${s.raidAction}**.`
             ),
           ],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -222,13 +222,13 @@ module.exports = {
               { name: 'Action', value: s.raidAction, inline: true }
             ),
           ],
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
       if (sub === 'reset') {
         clearRaid(guildId);
-        return interaction.reply({ embeds: [embeds.success('Raid state cleared', 'The join counter has been reset.')], ephemeral: true });
+        return interaction.reply({ embeds: [embeds.success('Raid state cleared', 'The join counter has been reset.')], flags: MessageFlags.Ephemeral });
       }
     }
 
