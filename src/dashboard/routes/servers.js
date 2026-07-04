@@ -5,6 +5,7 @@ const db = require('../../database');
 const { logger } = require('../../logger');
 const { requireGuildAccess, flash } = require('../middleware');
 const { listTextChannels, listAssignableRoles, guildHeader } = require('../lib/guild-view');
+const welcomeCard = require('../../modules/welcome/card');
 
 // ---- Small parsing helpers -----------------------------------------------
 const asBool = (v) => v === 'on' || v === 'true' || v === '1' || v === true;
@@ -99,6 +100,17 @@ module.exports = function createServersRouter(client) {
         welcomeDmEnabled: asBool(req.body.welcomeDmEnabled),
         welcomeDmMessage: (req.body.welcomeDmMessage ?? '').toString().slice(0, 1900),
         ghostPingPrevention: asBool(req.body.ghostPingPrevention),
+        welcomeCardEnabled: asBool(req.body.welcomeCardEnabled),
+        welcomeCardBackgroundUrl: asStrOrNull(req.body.welcomeCardBackgroundUrl),
+        welcomeCardTitle: (req.body.welcomeCardTitle ?? '{user.name} just joined the server')
+          .toString()
+          .slice(0, 200),
+        welcomeCardSubtitle: (req.body.welcomeCardSubtitle ?? 'Member #{memberCount}')
+          .toString()
+          .slice(0, 200),
+        welcomeCardTitleColor: asStrOrNull(req.body.welcomeCardTitleColor) || '#ffffff',
+        welcomeCardSubtitleColor: asStrOrNull(req.body.welcomeCardSubtitleColor) || '#cccccc',
+        welcomeCardAccentColor: asStrOrNull(req.body.welcomeCardAccentColor) || '#5865f2',
       });
       flash(req, 'success', 'Welcome settings saved.');
     } catch (err) {
@@ -106,6 +118,41 @@ module.exports = function createServersRouter(client) {
       flash(req, 'error', 'Could not save settings.');
     }
     res.redirect(`/servers/${req.guildId}/welcome`);
+  });
+
+  // ---- Welcome card live preview (renders using the CURRENT saved settings
+  // and the logged-in user's own avatar/name so admins can iterate quickly).
+  router.get('/servers/:guildId/welcome/card-preview.png', guildGuard, async (req, res) => {
+    if (!welcomeCard.hasCanvas) {
+      return res.status(501).type('text/plain').send('Card renderer unavailable on this server.');
+    }
+    try {
+      const settings = await db.getGuildSettings(req.guildId);
+      const sessionUser = req.session.user;
+      // Fake a discord.js-shaped GuildMember for the renderer.
+      const fakeMember = {
+        guild: {
+          name: req.botGuild.name,
+          memberCount: req.botGuild.memberCount,
+        },
+        user: {
+          id: sessionUser?.id || '0',
+          username: sessionUser?.globalName || sessionUser?.username || 'PreviewUser',
+          tag: sessionUser?.username || 'PreviewUser',
+          displayAvatarURL: () =>
+            sessionUser?.avatar
+              ? `https://cdn.discordapp.com/avatars/${sessionUser.id}/${sessionUser.avatar}.png?size=256`
+              : `https://cdn.discordapp.com/embed/avatars/${(Number(sessionUser?.id || 0) >> 22) % 6}.png`,
+        },
+      };
+      const buffer = await welcomeCard.renderWelcomeCard(fakeMember, settings);
+      if (!buffer) return res.status(500).type('text/plain').send('Render failed.');
+      res.setHeader('Cache-Control', 'no-store');
+      res.type('image/png').send(buffer);
+    } catch (err) {
+      logger.error('[dashboard] card preview failed:', err);
+      res.status(500).type('text/plain').send('Render failed.');
+    }
   });
 
   // ================================================================

@@ -48,6 +48,26 @@ module.exports = (sequelize) => {
       // Ghost-ping detection: log messages that mentioned users/roles and were deleted.
       ghostPingPrevention: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
 
+      // ---- Welcome card (MEE6-style rendered image) ----
+      welcomeCardEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+      // Public HTTPS URL of a background image. Blank -> gradient fallback.
+      welcomeCardBackgroundUrl: { type: DataTypes.STRING, allowNull: true },
+      // Supports the same {user.name} / {server} / {memberCount} placeholders as the text messages.
+      welcomeCardTitle: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: '{user.name} just joined the server',
+      },
+      welcomeCardSubtitle: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+        defaultValue: 'Member #{memberCount}',
+      },
+      // Hex colours; a leading # is optional.
+      welcomeCardTitleColor: { type: DataTypes.STRING, allowNull: false, defaultValue: '#ffffff' },
+      welcomeCardSubtitleColor: { type: DataTypes.STRING, allowNull: false, defaultValue: '#cccccc' },
+      welcomeCardAccentColor: { type: DataTypes.STRING, allowNull: false, defaultValue: '#5865f2' },
+
       // ---- Security / verification ----
       verificationEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       verificationChannelId: { type: DataTypes.STRING, allowNull: true },

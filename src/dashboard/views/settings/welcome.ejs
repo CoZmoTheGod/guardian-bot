@@ -36,6 +36,59 @@
       </section>
 
       <section class="card">
+        <h2>Welcome card (image)</h2>
+        <p class="muted" style="margin:-4px 0 12px">
+          A MEE6-style rendered image with the joining member's avatar and a member-count subtitle. Attached alongside the welcome message above.
+        </p>
+        <label class="field checkbox">
+          <input type="checkbox" name="welcomeCardEnabled" <%= settings.welcomeCardEnabled ? 'checked' : '' %>>
+          <span>Attach a rendered welcome card to the join message</span>
+        </label>
+        <label class="field">
+          <span>Background image URL <small>(https recommended; leave blank for a gradient)</small></span>
+          <input type="text" name="welcomeCardBackgroundUrl" value="<%= settings.welcomeCardBackgroundUrl || '' %>" placeholder="https://example.com/background.png">
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span>Title text</span>
+            <input type="text" name="welcomeCardTitle" value="<%= settings.welcomeCardTitle %>" maxlength="200">
+            <small>Placeholders: <code>{user.name}</code>, <code>{server}</code>, <code>{memberCount}</code></small>
+          </label>
+          <label class="field">
+            <span>Subtitle text</span>
+            <input type="text" name="welcomeCardSubtitle" value="<%= settings.welcomeCardSubtitle %>" maxlength="200">
+            <small>Placeholders: <code>{memberCount}</code>, <code>{user.name}</code>, <code>{server}</code></small>
+          </label>
+          <label class="field">
+            <span>Title colour</span>
+            <input type="color" name="welcomeCardTitleColor" value="<%= settings.welcomeCardTitleColor || '#ffffff' %>">
+          </label>
+          <label class="field">
+            <span>Subtitle colour</span>
+            <input type="color" name="welcomeCardSubtitleColor" value="<%= settings.welcomeCardSubtitleColor || '#cccccc' %>">
+          </label>
+          <label class="field">
+            <span>Accent colour (ring + pill)</span>
+            <input type="color" name="welcomeCardAccentColor" value="<%= settings.welcomeCardAccentColor || '#5865f2' %>">
+          </label>
+        </div>
+        <div class="card-preview">
+          <div class="card-preview-label">
+            Live preview <small>(uses <em>saved</em> settings and <em>your</em> avatar — save your changes then refresh)</small>
+          </div>
+          <img
+            src="/servers/<%= guild.id %>/welcome/card-preview.png?t=<%= Date.now() %>"
+            alt="Welcome card preview"
+            style="max-width:100%;border-radius:8px;display:block"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"
+          >
+          <div class="muted" style="display:none;padding:12px;text-align:center">
+            Preview unavailable — the canvas renderer may be missing fonts. Card rendering still works when tested with a real join.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
         <h2>Leave message</h2>
         <label class="field checkbox">
           <input type="checkbox" name="leaveEnabled" <%= settings.leaveEnabled ? 'checked' : '' %>>

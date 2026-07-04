@@ -6,6 +6,7 @@ const { applyPlaceholders } = require('../utils/time');
 const { sendGuildLog, logger } = require('../logger');
 const raid = require('../modules/security/raid');
 const verification = require('../modules/security/verification');
+const welcomeCard = require('../modules/welcome/card');
 
 module.exports = {
   name: Events.GuildMemberAdd,
@@ -59,7 +60,26 @@ module.exports = {
         (await guild.channels.fetch(settings.welcomeChannelId).catch(() => null));
       if (channel?.isTextBased?.()) {
         const content = applyPlaceholders(settings.welcomeMessage, { member, guild });
-        channel.send({ content, allowedMentions: { users: [member.id] } }).catch(() => {});
+
+        // Attach the MEE6-style card if enabled and the canvas library is
+        // available. Rendering failures are non-fatal — we still send the
+        // text welcome message so a broken background URL never suppresses
+        // the greeting entirely.
+        const files = [];
+        if (settings.welcomeCardEnabled && welcomeCard.hasCanvas) {
+          try {
+            const buffer = await welcomeCard.renderWelcomeCard(member, settings);
+            if (buffer) {
+              files.push({ attachment: buffer, name: 'welcome.png' });
+            }
+          } catch (err) {
+            logger.warn(`Welcome card render failed for ${member.user.tag}: ${err.message}`);
+          }
+        }
+
+        channel
+          .send({ content, files, allowedMentions: { users: [member.id] } })
+          .catch((e) => logger.debug(`welcome send failed: ${e.message}`));
       }
     }
 
