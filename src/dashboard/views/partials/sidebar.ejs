@@ -1,0 +1,21 @@
+<aside class="sidebar">
+  <div class="sidebar-server">
+    <% if (guild && guild.icon) { %>
+      <img src="https://cdn.discordapp.com/icons/<%= guild.id %>/<%= guild.icon %>.png?size=128" alt="">
+    <% } else { %>
+      <div class="sidebar-server-fallback"><%= (guild ? guild.name : '?').charAt(0).toUpperCase() %></div>
+    <% } %>
+    <div class="sidebar-server-name"><%= guild ? guild.name : 'Unknown server' %></div>
+    <a class="link-btn sm" href="/servers">← All servers</a>
+  </div>
+  <nav class="sidebar-nav">
+    <% var base = '/servers/' + guild.id; %>
+    <a href="<%= base %>" class="<%= currentPath === base ? 'active' : '' %>">Overview</a>
+    <a href="<%= base %>/general" class="<%= currentPath.startsWith(base + '/general') ? 'active' : '' %>">General & Music</a>
+    <a href="<%= base %>/welcome" class="<%= currentPath.startsWith(base + '/welcome') ? 'active' : '' %>">Welcome & Leave</a>
+    <a href="<%= base %>/security" class="<%= currentPath.startsWith(base + '/security') ? 'active' : '' %>">Security</a>
+    <a href="<%= base %>/reactionroles" class="<%= currentPath.startsWith(base + '/reactionroles') ? 'active' : '' %>">Reaction Roles</a>
+    <a href="<%= base %>/backups" class="<%= currentPath.startsWith(base + '/backups') ? 'active' : '' %>">Backups</a>
+    <a href="<%= base %>/moderation" class="<%= currentPath.startsWith(base + '/moderation') ? 'active' : '' %>">Moderation</a>
+  </nav>
+</aside>

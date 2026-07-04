@@ -1,0 +1,45 @@
+# ============================================================================
+# Guardian — standalone production deployment
+#   1. Create your env file:  cp .env.example .env.production   (fill it in)
+#   2. Start:                 docker compose up -d --build
+#
+# By default the bot uses an embedded SQLite database (persisted in the
+# "guardian-data" volume). To use PostgreSQL instead, uncomment the "db"
+# service below and set DATABASE_URL in .env.production to:
+#   postgres://guardian:guardian@db:5432/guardian
+# ============================================================================
+
+services:
+  guardian:
+    build: .
+    container_name: guardian-bot
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=production
+    # Expose the web dashboard on port 3000 of the host. Change the LEFT side
+    # if 3000 is taken; keep the right side matching DASHBOARD_PORT in .env.
+    ports:
+      - "3000:3000"
+    volumes:
+      - guardian-data:/app/data
+    # Uncomment if you enable the PostgreSQL service below.
+    # depends_on:
+    #   - db
+
+  # ---- Optional PostgreSQL (uncomment to use instead of SQLite) ----
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: guardian-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: guardian
+  #     POSTGRES_PASSWORD: guardian
+  #     POSTGRES_DB: guardian
+  #   volumes:
+  #     - guardian-pg:/var/lib/postgresql/data
+
+volumes:
+  guardian-data:
+  # guardian-pg:

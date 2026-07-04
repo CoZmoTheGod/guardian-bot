@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= typeof title !== 'undefined' ? title + ' · Guardian' : 'Guardian dashboard' %></title>
+  <link rel="stylesheet" href="/public/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark">🛡</span>
+      <span class="brand-name">Guardian</span>
+    </a>
+    <nav class="site-nav">
+      <% if (currentUser) { %>
+        <a href="/servers" class="<%= currentPath === '/servers' ? 'active' : '' %>">Servers</a>
+        <div class="user-pill">
+          <% if (currentUser.avatar) { %>
+            <img src="https://cdn.discordapp.com/avatars/<%= currentUser.id %>/<%= currentUser.avatar %>.png?size=64" alt="">
+          <% } else { %>
+            <span class="avatar-fallback"><%= (currentUser.globalName || currentUser.username || '?').charAt(0).toUpperCase() %></span>
+          <% } %>
+          <span><%= currentUser.globalName || currentUser.username %></span>
+          <form method="post" action="/logout" class="inline-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button type="submit" class="link-btn">Log out</button>
+          </form>
+        </div>
+      <% } else { %>
+        <a href="/login" class="btn primary sm">Login with Discord</a>
+      <% } %>
+    </nav>
+  </header>

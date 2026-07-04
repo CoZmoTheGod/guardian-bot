@@ -1,0 +1,182 @@
+{
+    "_comment": "Guardian Discord Bot egg — compatible with both Pterodactyl and Pelican (same egg schema). Import via Admin -> Nests/Eggs -> Import Egg, or Import from URL.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-07-02T00:00:00+00:00",
+    "name": "Guardian Discord Bot",
+    "author": "guardian@example.com",
+    "description": "All-in-one Discord moderation, music, reaction-role, anti-bot captcha, backup/restore and welcome bot built on discord.js v14. Pulls from a Git repository, installs dependencies and runs automatically.",
+    "features": null,
+    "docker_images": {
+        "Node.js 20": "ghcr.io/parkervcp/yolks:nodejs_20"
+    },
+    "file_denylist": [],
+    "startup": "export YT_DLP_PATH=\"$(pwd)/yt-dlp\"; if [ -f \"$YT_DLP_PATH\" ]; then \"$YT_DLP_PATH\" -U || true; fi; if [ \"${AUTO_UPDATE}\" = \"1\" ] && [ -d .git ]; then git pull; fi; npm install --no-audit --no-fund && npm start",
+    "config": {
+        "files": "{}",
+        "startup": "{\r\n    \"done\": \"Guardian bot is online\"\r\n}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# Guardian Discord Bot installation script\n# Installs build tooling, yt-dlp, clones the repository and installs dependencies.\n\napt-get update\napt-get install -y --no-install-recommends git make gcc g++ python3 curl ca-certificates\n\nmkdir -p /mnt/server\ncd /mnt/server\n\nif [ -n \"${GIT_REPO}\" ]; then\n    if [ -d .git ]; then\n        echo \"Existing repository found, pulling latest changes...\"\n        git pull\n    else\n        echo \"Cloning ${GIT_REPO} (branch ${GIT_BRANCH})...\"\n        git clone --branch \"${GIT_BRANCH}\" \"${GIT_REPO}\" .\n    fi\nelse\n    echo \"No GIT_REPO set — skipping clone. Upload the bot files manually.\"\nfi\n\necho \"Downloading standalone yt-dlp (no Python required)...\"\ncurl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /mnt/server/yt-dlp\nchmod +x /mnt/server/yt-dlp\n\nif [ -f package.json ]; then\n    echo \"Installing npm dependencies...\"\n    export YOUTUBE_DL_SKIP_DOWNLOAD=true\n    npm install --no-audit --no-fund\nfi\n\nmkdir -p /mnt/server/data\necho \"Guardian installation complete.\"\n",
+            "container": "ghcr.io/parkervcp/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Discord Bot Token",
+            "description": "Your Discord bot token from https://discord.com/developers/applications (Bot -> Token). Keep this secret.",
+            "env_variable": "DISCORD_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Application (Client) ID",
+            "description": "Your application's Client ID (General Information -> Application ID). Used to register slash commands.",
+            "env_variable": "CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "YouTube API Key",
+            "description": "YouTube Data API v3 key for reliable music search. Optional but recommended.",
+            "env_variable": "YOUTUBE_API_KEY",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Spotify Client ID",
+            "description": "Spotify application Client ID (https://developer.spotify.com/dashboard) used to resolve Spotify links.",
+            "env_variable": "SPOTIFY_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Spotify Client Secret",
+            "description": "Spotify application Client Secret. Keep this secret.",
+            "env_variable": "SPOTIFY_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Database URL",
+            "description": "Database connection string. Default uses an embedded SQLite file. For PostgreSQL use: postgres://user:pass@host:5432/dbname",
+            "env_variable": "DATABASE_URL",
+            "default_value": "sqlite://./data/guardian.sqlite",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Node Environment",
+            "description": "Runtime environment: production or development.",
+            "env_variable": "NODE_ENV",
+            "default_value": "production",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:production,development",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Repository",
+            "description": "HTTPS URL of the Git repository to deploy from (used by the install script and auto-update).",
+            "env_variable": "GIT_REPO",
+            "default_value": "https://github.com/your-username/guardian-bot.git",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Git Branch",
+            "description": "Branch to deploy from.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "main",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto Update",
+            "description": "Set to 1 to git pull the latest code on every start, or 0 to disable.",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Enabled",
+            "description": "Enable the web configuration dashboard (true/false). When on, Guardian starts an HTTP server on the port below.",
+            "env_variable": "DASHBOARD_ENABLED",
+            "default_value": "false",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:true,false,1,0",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Port",
+            "description": "TCP port for the web dashboard. Assign a game server port in the panel and use its INTERNAL value here.",
+            "env_variable": "DASHBOARD_PORT",
+            "default_value": "3000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Public URL",
+            "description": "Public URL where the dashboard is reachable (used for OAuth redirect). Example: https://guardian.example.com  — must exactly match the redirect URI configured under OAuth2 in the Discord Developer Portal.",
+            "env_variable": "DASHBOARD_URL",
+            "default_value": "http://localhost:3000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Dashboard Session Secret",
+            "description": "Random long string used to sign session cookies. Generate one with: openssl rand -hex 48",
+            "env_variable": "DASHBOARD_SESSION_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord Client Secret",
+            "description": "Discord application Client Secret (OAuth2 -> Client Secret). REQUIRED to enable the web dashboard login flow. Keep this secret.",
+            "env_variable": "DISCORD_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string",
+            "field_type": "text"
+        }
+    ]
+}

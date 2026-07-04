@@ -1,0 +1,102 @@
+<%- include('../partials/header') %>
+<div class="dashboard-shell">
+  <%- include('../partials/sidebar') %>
+  <main class="content">
+    <%- include('../partials/flashes') %>
+    <h1>Security</h1>
+
+    <form method="post" action="/servers/<%= guild.id %>/security" class="settings-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <section class="card">
+        <h2>Member verification (captcha)</h2>
+        <label class="field checkbox">
+          <input type="checkbox" name="verificationEnabled" <%= settings.verificationEnabled ? 'checked' : '' %>>
+          <span>Require new members to complete a captcha before gaining access</span>
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span>Verification channel</span>
+            <select name="verificationChannelId">
+              <option value="">— none (DM only) —</option>
+              <% channels.forEach(function (c) { %>
+                <option value="<%= c.id %>" <%= settings.verificationChannelId === c.id ? 'selected' : '' %>>
+                  <%= (c.parent ? c.parent + ' / ' : '') + '#' + c.name %>
+                </option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="field">
+            <span>Verified role</span>
+            <select name="verifiedRoleId">
+              <option value="">— none —</option>
+              <% roles.forEach(function (r) { %>
+                <option value="<%= r.id %>" <%= settings.verifiedRoleId === r.id ? 'selected' : '' %> <%= r.assignableByBot ? '' : 'disabled' %>>
+                  <%= r.name %><%= r.assignableByBot ? '' : ' (bot cannot assign)' %>
+                </option>
+              <% }) %>
+            </select>
+            <small>Granted after a member passes the captcha.</small>
+          </label>
+          <label class="field">
+            <span>Captcha type</span>
+            <select name="captchaMode">
+              <% ['button','text','image'].forEach(function (m) { %>
+                <option value="<%= m %>" <%= settings.captchaMode === m ? 'selected' : '' %>><%= m %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label class="field">
+            <span>Delivery</span>
+            <select name="captchaDelivery">
+              <option value="channel" <%= settings.captchaDelivery === 'channel' ? 'selected' : '' %>>Channel</option>
+              <option value="dm" <%= settings.captchaDelivery === 'dm' ? 'selected' : '' %>>Direct message</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Timeout (seconds)</span>
+            <input type="number" name="verifyTimeoutSec" min="30" max="3600" value="<%= settings.verifyTimeoutSec %>">
+          </label>
+          <label class="field">
+            <span>If unverified after timeout</span>
+            <select name="unverifiedAction">
+              <option value="kick" <%= settings.unverifiedAction === 'kick' ? 'selected' : '' %>>Kick from server</option>
+              <option value="flag" <%= settings.unverifiedAction === 'flag' ? 'selected' : '' %>>Just flag in log</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Raid protection</h2>
+        <label class="field checkbox">
+          <input type="checkbox" name="raidModeEnabled" <%= settings.raidModeEnabled ? 'checked' : '' %>>
+          <span>Automatically detect suspicious mass-joins</span>
+        </label>
+        <div class="grid-2">
+          <label class="field">
+            <span>Trigger: joins within window</span>
+            <input type="number" name="raidJoinThreshold" min="2" max="100" value="<%= settings.raidJoinThreshold %>">
+          </label>
+          <label class="field">
+            <span>Window (seconds)</span>
+            <input type="number" name="raidWindowSec" min="2" max="300" value="<%= settings.raidWindowSec %>">
+          </label>
+          <label class="field">
+            <span>Action when triggered</span>
+            <select name="raidAction">
+              <option value="alert" <%= settings.raidAction === 'alert' ? 'selected' : '' %>>Alert log only</option>
+              <option value="kick" <%= settings.raidAction === 'kick' ? 'selected' : '' %>>Kick the burst</option>
+              <option value="lockdown" <%= settings.raidAction === 'lockdown' ? 'selected' : '' %>>Server lockdown</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save changes</button>
+      </div>
+    </form>
+  </main>
+</div>
+<%- include('../partials/footer') %>

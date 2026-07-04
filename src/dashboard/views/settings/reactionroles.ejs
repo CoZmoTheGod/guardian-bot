@@ -1,0 +1,67 @@
+<%- include('../partials/header') %>
+<div class="dashboard-shell">
+  <%- include('../partials/sidebar') %>
+  <main class="content">
+    <%- include('../partials/flashes') %>
+    <h1>Reaction Roles</h1>
+    <p class="lead">
+      Create new panels with the <code>/reactionrole create</code> slash command
+      in Discord (the panel needs a live message to attach to). Manage existing
+      ones here.
+    </p>
+
+    <form method="post" action="/servers/<%= guild.id %>/reactionroles/channel" class="settings-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <section class="card">
+        <h2>Default panel channel</h2>
+        <label class="field">
+          <span>Channel used by <code>/reactionrole create</code></span>
+          <select name="reactRoleChannelId">
+            <option value="">— ask each time —</option>
+            <% channels.forEach(function (c) { %>
+              <option value="<%= c.id %>" <%= settings.reactRoleChannelId === c.id ? 'selected' : '' %>>
+                <%= (c.parent ? c.parent + ' / ' : '') + '#' + c.name %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+        <div class="form-actions">
+          <button type="submit" class="btn primary">Save default</button>
+        </div>
+      </section>
+    </form>
+
+    <section class="card">
+      <h2>Panels (<%= panels.length %>)</h2>
+      <% if (!panels.length) { %>
+        <p class="muted">No reaction-role panels yet. Run <code>/reactionrole create</code>.</p>
+      <% } else { %>
+        <ul class="rr-list">
+          <% panels.forEach(function (p) { %>
+            <li class="rr-item">
+              <div class="rr-meta">
+                <div class="rr-title"><%= p.title || '(untitled panel)' %></div>
+                <div class="rr-sub">
+                  #<%= p.channelName %>
+                  <% if (p.exclusive) { %> · <span class="badge">exclusive</span><% } %>
+                  · <a href="<%= p.jumpUrl %>" target="_blank" rel="noreferrer">jump to message ↗</a>
+                </div>
+                <% if (p.description) { %><div class="rr-desc"><%= p.description %></div><% } %>
+                <ul class="rr-mappings">
+                  <% p.mappings.forEach(function (m) { %>
+                    <li><span class="rr-emoji"><%= m.emoji %></span> → <%= m.roleName %></li>
+                  <% }) %>
+                </ul>
+              </div>
+              <form method="post" action="/servers/<%= guild.id %>/reactionroles/panel/<%= p.id %>/delete" class="rr-actions">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="btn danger sm" onclick="return confirm('Delete this reaction-role panel and its Discord message?');">Delete</button>
+              </form>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </main>
+</div>
+<%- include('../partials/footer') %>

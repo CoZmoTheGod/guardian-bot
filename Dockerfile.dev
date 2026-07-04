@@ -1,0 +1,31 @@
+# ---- Development image: full deps + nodemon hot reload -----------------------
+FROM node:20-bookworm-slim
+
+ENV NODE_ENV=development
+WORKDIR /app
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 make gcc g++ git curl ca-certificates fonts-dejavu-core \
+ && rm -rf /var/lib/apt/lists/*
+
+# Standalone yt-dlp (no Python needed) — reliable YouTube extraction for music.
+RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux -o /usr/local/bin/yt-dlp \
+ && chmod +x /usr/local/bin/yt-dlp
+ENV YT_DLP_PATH=/usr/local/bin/yt-dlp
+ENV YOUTUBE_DL_SKIP_DOWNLOAD=true
+
+# Install ALL dependencies (including nodemon).
+COPY package*.json ./
+RUN npm install --no-audit --no-fund
+
+# Source is bind-mounted at runtime (see docker-compose.dev.yml); this COPY is a
+# fallback so the image also works standalone.
+COPY . .
+
+RUN mkdir -p /app/data
+
+# Web dashboard port (matches DASHBOARD_PORT default).
+EXPOSE 3000
+
+# `npm run dev` runs nodemon and watches ./src for changes.
+CMD ["npm", "run", "dev"]

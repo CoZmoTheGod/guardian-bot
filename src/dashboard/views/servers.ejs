@@ -1,0 +1,43 @@
+<%- include('partials/header') %>
+<main class="content wide">
+  <%- include('partials/flashes') %>
+  <div class="page-header">
+    <h1>Your servers</h1>
+    <form method="post" action="/auth/refresh" class="inline-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="btn ghost sm">Refresh list</button>
+    </form>
+  </div>
+
+  <% if (!guilds.length) { %>
+    <div class="empty">
+      <h2>No manageable servers found.</h2>
+      <p>You'll see a server here when both of these are true:</p>
+      <ul>
+        <li>You have <strong>Manage Server</strong> permission in it.</li>
+        <li>The Guardian bot has been invited to it.</li>
+      </ul>
+      <p>Missing one? Invite the bot, or ask an admin to grant you Manage Server, then click <em>Refresh list</em>.</p>
+    </div>
+  <% } else { %>
+    <div class="guild-grid">
+      <% guilds.forEach(function (g) { %>
+        <a class="guild-card" href="/servers/<%= g.id %>">
+          <% if (g.icon) { %>
+            <img class="guild-icon" src="https://cdn.discordapp.com/icons/<%= g.id %>/<%= g.icon %>.png?size=128" alt="">
+          <% } else { %>
+            <div class="guild-icon fallback"><%= g.name.charAt(0).toUpperCase() %></div>
+          <% } %>
+          <div class="guild-meta">
+            <div class="guild-name"><%= g.name %></div>
+            <div class="guild-sub">
+              <%= g.owner ? 'Owner' : 'Manager' %>
+              <% if (g.memberCount != null) { %> · <%= g.memberCount %> members<% } %>
+            </div>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+</main>
+<%- include('partials/footer') %>

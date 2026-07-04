@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+<div class="dashboard-shell">
+  <%- include('../partials/sidebar') %>
+  <main class="content">
+    <%- include('../partials/flashes') %>
+    <h1>Backups</h1>
+    <p class="lead">
+      Create new backups with <code>/backup create name:&lt;name&gt;</code> and
+      restore with <code>/backup load</code> in Discord. Deletions can be done
+      from here after confirming the backup name.
+    </p>
+
+    <section class="card">
+      <% if (!backups.length) { %>
+        <p class="muted">No backups yet.</p>
+      <% } else { %>
+        <table class="data-table">
+          <thead>
+            <tr><th>Name</th><th>Created</th><th>By</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% backups.forEach(function (b) { %>
+              <tr>
+                <td class="mono"><%= b.name %></td>
+                <td><%= new Date(b.createdAt).toLocaleString() %></td>
+                <td class="mono"><%= b.createdBy || '—' %></td>
+                <td>
+                  <form method="post" action="/servers/<%= guild.id %>/backups/<%= b.id %>/delete" class="inline-form confirm-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <input type="text" name="confirmName" placeholder="type name to delete" required autocomplete="off">
+                    <button type="submit" class="btn danger sm">Delete</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+  </main>
+</div>
+<%- include('../partials/footer') %>

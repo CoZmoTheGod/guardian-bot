@@ -1,0 +1,75 @@
+<%- include('../partials/header') %>
+<div class="dashboard-shell">
+  <%- include('../partials/sidebar') %>
+  <main class="content">
+    <%- include('../partials/flashes') %>
+    <h1>General & Music</h1>
+    <p class="lead">Baseline configuration shared across all modules.</p>
+
+    <form method="post" action="/servers/<%= guild.id %>/general" class="settings-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <section class="card">
+        <h2>Logging</h2>
+        <label class="field">
+          <span>Log channel</span>
+          <select name="logChannelId">
+            <option value="">— none (console only) —</option>
+            <% channels.forEach(function (c) { %>
+              <option value="<%= c.id %>" <%= settings.logChannelId === c.id ? 'selected' : '' %>>
+                <%= (c.parent ? c.parent + ' / ' : '') + '#' + c.name %><%= c.canSend ? '' : ' (bot cannot send)' %>
+              </option>
+            <% }) %>
+          </select>
+          <small>Channel where Guardian posts moderation, verification, and raid alerts.</small>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Music</h2>
+        <label class="field">
+          <span>Default volume (%)</span>
+          <input type="number" name="musicDefaultVolume" min="0" max="200" value="<%= settings.musicDefaultVolume %>">
+          <small>Applied to new play sessions. Members can override per session.</small>
+        </label>
+        <label class="field checkbox">
+          <input type="checkbox" name="sponsorBlockEnabled" <%= settings.sponsorBlockEnabled ? 'checked' : '' %>>
+          <span>SponsorBlock — automatically skip sponsor segments in YouTube tracks</span>
+        </label>
+        <label class="field">
+          <span>DJ role</span>
+          <select name="djRoleId">
+            <option value="">— none —</option>
+            <% roles.forEach(function (r) { %>
+              <option value="<%= r.id %>" <%= settings.djRoleId === r.id ? 'selected' : '' %>>
+                <%= r.name %><%= r.managed ? ' (managed)' : '' %>
+              </option>
+            <% }) %>
+          </select>
+          <small>Users with this role can skip / stop / adjust volume even for tracks queued by others.</small>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Backups</h2>
+        <label class="field">
+          <span>Backup permission role</span>
+          <select name="backupPermRoleId">
+            <option value="">— owner + administrators only —</option>
+            <% roles.forEach(function (r) { %>
+              <option value="<%= r.id %>" <%= settings.backupPermRoleId === r.id ? 'selected' : '' %>>
+                <%= r.name %>
+              </option>
+            <% }) %>
+          </select>
+          <small>Members with this role may run backup and restore commands.</small>
+        </label>
+      </section>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save changes</button>
+      </div>
+    </form>
+  </main>
+</div>
+<%- include('../partials/footer') %>

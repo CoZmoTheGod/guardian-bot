@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+<div class="dashboard-shell">
+  <%- include('../partials/sidebar') %>
+  <main class="content">
+    <%- include('../partials/flashes') %>
+    <h1>Moderation</h1>
+    <p class="lead">
+      Currently locked channels (from <code>/lock</code>). Use <code>/unlock</code>
+      in Discord to restore permissions — this page can remove stale lock
+      records if a channel was deleted.
+    </p>
+
+    <section class="card">
+      <% if (!locks.length) { %>
+        <p class="muted">No channels are currently locked.</p>
+      <% } else { %>
+        <table class="data-table">
+          <thead>
+            <tr><th>Channel</th><th>Previous state</th><th>Locked by</th><th>Reason</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% locks.forEach(function (l) { %>
+              <tr>
+                <td>#<%= l.channelName %></td>
+                <td class="mono"><%= l.previous %></td>
+                <td class="mono"><%= l.lockedBy || '—' %></td>
+                <td><%= l.reason || '—' %></td>
+                <td>
+                  <form method="post" action="/servers/<%= guild.id %>/moderation/lock/<%= l.channelId %>/forget" class="inline-form">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button type="submit" class="btn ghost sm" onclick="return confirm('Forget this lock record? Discord permissions will NOT be changed.');">Forget</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } %>
+    </section>
+  </main>
+</div>
+<%- include('../partials/footer') %>

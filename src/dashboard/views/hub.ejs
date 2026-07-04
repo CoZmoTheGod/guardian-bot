@@ -1,0 +1,47 @@
+<%- include('partials/header') %>
+<div class="dashboard-shell">
+  <%- include('partials/sidebar') %>
+  <main class="content">
+    <%- include('partials/flashes') %>
+    <div class="page-header">
+      <h1><%= guild.name %></h1>
+      <span class="badge"><%= guild.memberCount %> members</span>
+    </div>
+
+    <p class="lead">Pick a category to configure Guardian for this server.</p>
+
+    <div class="module-grid">
+      <a class="module-card" href="/servers/<%= guild.id %>/general">
+        <h3>General & Music</h3>
+        <p>Log channel, DJ role, default volume, SponsorBlock, backup role.</p>
+      </a>
+      <a class="module-card" href="/servers/<%= guild.id %>/welcome">
+        <h3>Welcome & Leave</h3>
+        <p>Join / leave / DM messages and ghost-ping detection.</p>
+        <span class="status <%= settings.welcomeEnabled || settings.leaveEnabled ? 'on' : 'off' %>">
+          <%= settings.welcomeEnabled || settings.leaveEnabled ? 'Enabled' : 'Off' %>
+        </span>
+      </a>
+      <a class="module-card" href="/servers/<%= guild.id %>/security">
+        <h3>Security</h3>
+        <p>Captcha verification & raid protection.</p>
+        <span class="status <%= settings.verificationEnabled || settings.raidModeEnabled ? 'on' : 'off' %>">
+          <%= settings.verificationEnabled ? 'Verification on' : (settings.raidModeEnabled ? 'Raid mode' : 'Off') %>
+        </span>
+      </a>
+      <a class="module-card" href="/servers/<%= guild.id %>/reactionroles">
+        <h3>Reaction Roles</h3>
+        <p>Manage self-serve role panels.</p>
+      </a>
+      <a class="module-card" href="/servers/<%= guild.id %>/backups">
+        <h3>Backups</h3>
+        <p>View and delete server snapshots.</p>
+      </a>
+      <a class="module-card" href="/servers/<%= guild.id %>/moderation">
+        <h3>Moderation</h3>
+        <p>Locked channels and lockdown status.</p>
+      </a>
+    </div>
+  </main>
+</div>
+<%- include('partials/footer') %>

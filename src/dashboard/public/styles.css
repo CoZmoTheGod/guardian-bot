@@ -1,0 +1,251 @@
+/* Guardian dashboard — minimal dark theme */
+
+:root {
+  --bg: #0f1216;
+  --bg-2: #171b22;
+  --panel: #1e232c;
+  --panel-2: #262c37;
+  --border: #2b323e;
+  --text: #e6ebf2;
+  --text-dim: #97a1b0;
+  --text-muted: #6f7987;
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --danger: #dc3d4b;
+  --success: #3ba55c;
+  --warning: #e0a458;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  min-height: 100%;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: #7f8bff; text-decoration: underline; }
+
+/* ---- Header ------------------------------------------------------------ */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: inline-flex; align-items: center; gap: 8px; color: var(--text); font-weight: 600; font-size: 18px; }
+.brand:hover { color: var(--text); text-decoration: none; }
+.brand-mark { font-size: 22px; }
+.site-nav { display: flex; align-items: center; gap: 16px; }
+.site-nav a { color: var(--text-dim); font-weight: 500; padding: 6px 10px; border-radius: 6px; }
+.site-nav a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+.site-nav a.active { color: var(--text); background: var(--panel-2); }
+.user-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 4px; background: var(--panel); border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.user-pill img { width: 24px; height: 24px; border-radius: 50%; }
+.avatar-fallback {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: white; font-size: 11px; font-weight: 700;
+}
+
+/* ---- Landing ----------------------------------------------------------- */
+.landing { max-width: 720px; margin: 0 auto; padding: 60px 24px; }
+.hero h1 { font-size: 40px; margin: 0 0 12px; }
+.hero p { color: var(--text-dim); font-size: 16px; }
+
+/* ---- Buttons ----------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 8px 16px; border-radius: 6px; border: 1px solid transparent;
+  font: inherit; font-weight: 600; cursor: pointer; text-decoration: none;
+  background: var(--panel-2); color: var(--text); border-color: var(--border);
+}
+.btn:hover { background: #2f3644; text-decoration: none; }
+.btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.danger { background: var(--danger); color: white; border-color: var(--danger); }
+.btn.danger:hover { background: #b53240; }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 4px 10px; font-size: 12px; }
+.btn.lg { padding: 12px 24px; font-size: 16px; }
+
+.link-btn {
+  background: transparent; color: var(--text-dim); border: 0; padding: 0;
+  font: inherit; cursor: pointer; text-decoration: underline;
+}
+.link-btn:hover { color: var(--text); }
+.inline-form { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+
+/* ---- Server list ------------------------------------------------------- */
+.content {
+  max-width: 900px; margin: 0 auto; padding: 28px 24px;
+}
+.content.wide { max-width: 1080px; }
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; gap: 12px;
+}
+.page-header h1 { margin: 0; }
+.lead { color: var(--text-dim); margin-top: -8px; margin-bottom: 24px; }
+
+.guild-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.guild-card {
+  display: flex; gap: 12px; align-items: center;
+  background: var(--panel); border: 1px solid var(--border);
+  padding: 14px; border-radius: 10px; color: var(--text);
+}
+.guild-card:hover { border-color: var(--accent); text-decoration: none; }
+.guild-icon { width: 48px; height: 48px; border-radius: 12px; flex: 0 0 48px; }
+.guild-icon.fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); font-weight: 700; color: white;
+}
+.guild-name { font-weight: 600; }
+.guild-sub { color: var(--text-muted); font-size: 12px; }
+
+.empty {
+  background: var(--panel); border: 1px dashed var(--border); border-radius: 10px;
+  padding: 24px; color: var(--text-dim);
+}
+.empty h2 { color: var(--text); }
+
+/* ---- Dashboard shell (sidebar + content) ------------------------------ */
+.dashboard-shell {
+  display: grid; grid-template-columns: 260px 1fr; gap: 0; min-height: calc(100vh - 60px);
+}
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--bg-2);
+  padding: 20px 12px;
+}
+.sidebar-server {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 10px 8px 16px; border-bottom: 1px solid var(--border); margin-bottom: 12px;
+}
+.sidebar-server img { width: 56px; height: 56px; border-radius: 14px; }
+.sidebar-server-fallback {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: var(--accent); color: white; font-weight: 700; font-size: 24px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.sidebar-server-name { font-weight: 600; text-align: center; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-nav a {
+  color: var(--text-dim); padding: 8px 10px; border-radius: 6px; font-weight: 500;
+}
+.sidebar-nav a:hover { color: var(--text); background: var(--panel); text-decoration: none; }
+.sidebar-nav a.active { color: var(--text); background: var(--panel-2); }
+
+/* Content inside dashboard-shell */
+.dashboard-shell .content { max-width: 780px; margin: 0; padding: 24px 32px; }
+
+/* ---- Module cards on the hub ------------------------------------------ */
+.module-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.module-card {
+  display: block; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; color: var(--text);
+}
+.module-card:hover { border-color: var(--accent); text-decoration: none; }
+.module-card h3 { margin: 0 0 6px; }
+.module-card p { margin: 0; color: var(--text-dim); font-size: 13px; }
+.status { display: inline-block; margin-top: 10px; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+.status.on { color: var(--success); }
+.status.off { color: var(--text-muted); }
+.badge {
+  display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: 600;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px;
+  color: var(--text-dim);
+}
+
+/* ---- Forms ------------------------------------------------------------- */
+.settings-form .card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 18px 20px; margin-bottom: 16px;
+}
+.settings-form .card h2 { margin: 0 0 12px; font-size: 16px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.field > span { font-weight: 600; font-size: 13px; color: var(--text-dim); }
+.field small { color: var(--text-muted); font-size: 12px; }
+.field input[type="text"],
+.field input[type="number"],
+.field input[type="password"],
+.field select,
+.field textarea,
+.inline-form input[type="text"] {
+  width: 100%; padding: 8px 10px; border-radius: 6px;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  font: inherit;
+}
+.field textarea { resize: vertical; min-height: 68px; font-family: inherit; }
+.field.checkbox { flex-direction: row; align-items: center; gap: 10px; }
+.field.checkbox input { width: auto; }
+.field.checkbox span { font-weight: 500; color: var(--text); }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 20px; }
+.form-actions { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* ---- Flashes ----------------------------------------------------------- */
+.flashes { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+.flash { padding: 10px 14px; border-radius: 6px; border-left: 3px solid var(--accent); background: var(--panel); }
+.flash-success { border-color: var(--success); }
+.flash-error { border-color: var(--danger); }
+.flash-warning { border-color: var(--warning); }
+
+/* ---- Tables ------------------------------------------------------------ */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th, .data-table td {
+  padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left;
+}
+.data-table th { color: var(--text-dim); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--text-dim); }
+.muted { color: var(--text-muted); }
+
+/* ---- Reaction role list ----------------------------------------------- */
+.rr-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.rr-item {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 14px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.rr-title { font-weight: 600; }
+.rr-sub { color: var(--text-muted); font-size: 12px; margin-top: 2px; }
+.rr-desc { color: var(--text-dim); font-size: 13px; margin-top: 8px; }
+.rr-mappings { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.rr-mappings li { background: var(--bg); padding: 3px 8px; border-radius: 999px; font-size: 12px; }
+.rr-emoji { margin-right: 2px; }
+
+/* ---- Error page -------------------------------------------------------- */
+.error-box {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+  padding: 24px; text-align: center;
+}
+
+/* ---- Footer ------------------------------------------------------------ */
+.site-footer {
+  text-align: center; color: var(--text-muted); padding: 20px; font-size: 12px;
+  border-top: 1px solid var(--border); margin-top: 40px;
+}
+
+code {
+  background: var(--panel-2); padding: 1px 6px; border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 90%;
+}
+
+@media (max-width: 800px) {
+  .dashboard-shell { grid-template-columns: 1fr; }
+  .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
+  .grid-2 { grid-template-columns: 1fr; }
+}

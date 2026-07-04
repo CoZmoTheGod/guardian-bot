@@ -1,0 +1,87 @@
+<%- include('../partials/header') %>
+<div class="dashboard-shell">
+  <%- include('../partials/sidebar') %>
+  <main class="content">
+    <%- include('../partials/flashes') %>
+    <h1>Welcome & Leave</h1>
+    <p class="lead">
+      Placeholders you can use anywhere: <code>{user}</code>, <code>{user.tag}</code>,
+      <code>{user.name}</code>, <code>{server}</code>, <code>{memberCount}</code>.
+    </p>
+
+    <form method="post" action="/servers/<%= guild.id %>/welcome" class="settings-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <section class="card">
+        <h2>Welcome message</h2>
+        <label class="field checkbox">
+          <input type="checkbox" name="welcomeEnabled" <%= settings.welcomeEnabled ? 'checked' : '' %>>
+          <span>Post a welcome message in a channel when a member joins</span>
+        </label>
+        <label class="field">
+          <span>Welcome channel</span>
+          <select name="welcomeChannelId">
+            <option value="">— none —</option>
+            <% channels.forEach(function (c) { %>
+              <option value="<%= c.id %>" <%= settings.welcomeChannelId === c.id ? 'selected' : '' %>>
+                <%= (c.parent ? c.parent + ' / ' : '') + '#' + c.name %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+        <label class="field">
+          <span>Welcome message</span>
+          <textarea name="welcomeMessage" rows="3"><%= settings.welcomeMessage %></textarea>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Leave message</h2>
+        <label class="field checkbox">
+          <input type="checkbox" name="leaveEnabled" <%= settings.leaveEnabled ? 'checked' : '' %>>
+          <span>Post a message when a member leaves</span>
+        </label>
+        <label class="field">
+          <span>Leave channel</span>
+          <select name="leaveChannelId">
+            <option value="">— none —</option>
+            <% channels.forEach(function (c) { %>
+              <option value="<%= c.id %>" <%= settings.leaveChannelId === c.id ? 'selected' : '' %>>
+                <%= (c.parent ? c.parent + ' / ' : '') + '#' + c.name %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+        <label class="field">
+          <span>Leave message</span>
+          <textarea name="leaveMessage" rows="3"><%= settings.leaveMessage %></textarea>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Welcome DM</h2>
+        <label class="field checkbox">
+          <input type="checkbox" name="welcomeDmEnabled" <%= settings.welcomeDmEnabled ? 'checked' : '' %>>
+          <span>Send a direct message to new members</span>
+        </label>
+        <label class="field">
+          <span>DM message</span>
+          <textarea name="welcomeDmMessage" rows="3"><%= settings.welcomeDmMessage %></textarea>
+        </label>
+      </section>
+
+      <section class="card">
+        <h2>Ghost-ping prevention</h2>
+        <label class="field checkbox">
+          <input type="checkbox" name="ghostPingPrevention" <%= settings.ghostPingPrevention ? 'checked' : '' %>>
+          <span>Log deleted messages that mentioned members or roles</span>
+        </label>
+      </section>
+
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save changes</button>
+      </div>
+    </form>
+  </main>
+</div>
+<%- include('../partials/footer') %>

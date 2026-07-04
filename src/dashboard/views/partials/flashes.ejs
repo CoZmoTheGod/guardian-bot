@@ -1,0 +1,7 @@
+<% if (flashes && flashes.length) { %>
+  <div class="flashes">
+    <% flashes.forEach(function (f) { %>
+      <div class="flash flash-<%= f.type %>"><%= f.text %></div>
+    <% }) %>
+  </div>
+<% } %>
