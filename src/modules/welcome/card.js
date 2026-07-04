@@ -3,10 +3,15 @@
 /**
  * MEE6-style welcome card renderer.
  *
- * Composes a rectangular PNG that shows the joining member's avatar (circular),
- * a customisable title line and a subtitle (typically the member count) over
- * an optional background image. Uses `@napi-rs/canvas` — the same dependency
- * the image captcha uses — so no additional native module is required.
+ * Produces a rectangular PNG entirely in memory: no files are written to
+ * disk, no external images are fetched (except the joining member's avatar
+ * from Discord's own CDN, which is a public asset Discord already lets our
+ * bot embed). The buffer is streamed straight into `message.send({ files })`
+ * and dropped as soon as Discord acknowledges the send — Discord then hosts
+ * the resulting attachment on its own CDN, exactly like MEE6.
+ *
+ * Uses `@napi-rs/canvas` — the same dependency the image captcha already
+ * pulls in — so no extra native module is required.
  */
 
 const { logger } = require('../../logger');
@@ -30,46 +35,32 @@ const AVATAR_SIZE = 180;
 const AVATAR_LEFT = 60;
 const AVATAR_TOP = (CARD_HEIGHT - AVATAR_SIZE) / 2;
 
-/** Reject anything that isn't a plain http/https URL to a public host. */
-function isSafePublicUrl(rawUrl) {
-  if (!rawUrl || typeof rawUrl !== 'string') return false;
-  let url;
-  try {
-    url = new URL(rawUrl.trim());
-  } catch {
-    return false;
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
-  // Block obvious SSRF targets — private ranges + link-local.
-  const host = url.hostname.toLowerCase();
-  if (
-    host === 'localhost' ||
-    host === '0.0.0.0' ||
-    host.startsWith('127.') ||
-    host.startsWith('10.') ||
-    host.startsWith('169.254.') ||
-    host.startsWith('192.168.') ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host.endsWith('.local') ||
-    host.endsWith('.internal')
-  ) {
-    return false;
-  }
-  return true;
-}
-
+/** Normalise "fff" / "#ffffff" / "ffffff" → "#ffffff". */
 function normalizeColor(input, fallback) {
   if (!input || typeof input !== 'string') return fallback;
-  const trimmed = input.trim();
-  if (!trimmed) return fallback;
-  // Accept "#fff", "#ffffff", "fff", "ffffff", "rgb(...)".
-  if (/^#?[0-9a-f]{3}$/i.test(trimmed) || /^#?[0-9a-f]{6}$/i.test(trimmed)) {
-    return trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
+  const t = input.trim();
+  if (!t) return fallback;
+  if (/^#?[0-9a-f]{3}$/i.test(t) || /^#?[0-9a-f]{6}$/i.test(t)) {
+    return t.startsWith('#') ? t : `#${t}`;
   }
   return fallback;
 }
 
-/** Draw a rounded-rectangle path. */
+/** Parse a hex colour into [r,g,b]. */
+function hexToRgb(hex) {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+/** Nudge a colour toward black. amount 0..1. */
+function darken(hex, amount) {
+  const [r, g, b] = hexToRgb(hex);
+  const k = 1 - Math.max(0, Math.min(1, amount));
+  return `rgb(${Math.round(r * k)}, ${Math.round(g * k)}, ${Math.round(b * k)})`;
+}
+
+/** Draw a rounded rectangle path. */
 function roundedRect(ctx, x, y, w, h, r) {
   const radius = Math.min(r, w / 2, h / 2);
   ctx.beginPath();
@@ -81,21 +72,22 @@ function roundedRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-/** Break text at the widest word boundary that still fits in `maxWidth`. */
+/** Truncate `text` with an ellipsis to fit within `maxWidth`. */
 function fitText(ctx, text, maxWidth) {
   if (!text) return '';
   if (ctx.measureText(text).width <= maxWidth) return text;
-  let truncated = text;
-  while (truncated.length > 0 && ctx.measureText(`${truncated}…`).width > maxWidth) {
-    truncated = truncated.slice(0, -1);
-  }
-  return `${truncated}…`;
+  let t = text;
+  while (t.length && ctx.measureText(`${t}…`).width > maxWidth) t = t.slice(0, -1);
+  return `${t}…`;
 }
 
 /**
- * Render the welcome card for a member.
+ * Render the welcome card for a member and return the PNG bytes. Nothing is
+ * written to disk — the caller sends the buffer directly to Discord and the
+ * bytes are freed as soon as the send resolves.
+ *
  * @param {import('discord.js').GuildMember} member
- * @param {object} settings A GuildSettings row (may be a Sequelize instance or .toJSON()).
+ * @param {object} settings A GuildSettings row (Sequelize instance or .toJSON()).
  * @returns {Promise<Buffer|null>} PNG buffer, or null if rendering is unavailable.
  */
 async function renderWelcomeCard(member, settings) {
@@ -120,94 +112,78 @@ async function renderWelcomeCard(member, settings) {
   const canvas = canvasLib.createCanvas(CARD_WIDTH, CARD_HEIGHT);
   const ctx = canvas.getContext('2d');
 
-  // ---- Background -----------------------------------------------------
-  let drewBackground = false;
-  if (isSafePublicUrl(cfg.welcomeCardBackgroundUrl)) {
-    try {
-      const img = await canvasLib.loadImage(cfg.welcomeCardBackgroundUrl);
-      // Cover-fit the image (crop overflow to keep aspect ratio).
-      const scale = Math.max(CARD_WIDTH / img.width, CARD_HEIGHT / img.height);
-      const drawW = img.width * scale;
-      const drawH = img.height * scale;
-      ctx.drawImage(img, (CARD_WIDTH - drawW) / 2, (CARD_HEIGHT - drawH) / 2, drawW, drawH);
-      drewBackground = true;
-    } catch (err) {
-      logger.debug(`welcome-card: background load failed (${cfg.welcomeCardBackgroundUrl}): ${err.message}`);
-    }
-  }
-
-  if (!drewBackground) {
-    // Gradient fallback derived from the accent colour.
-    const gradient = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
-    gradient.addColorStop(0, '#1e2130');
-    gradient.addColorStop(1, accentColor);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
-  }
-
-  // Dark translucent overlay for text legibility on any background.
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  // ---- Background: a self-contained gradient derived from the accent
+  // colour plus a subtle radial glow behind the avatar. No external images.
+  const bg = ctx.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT);
+  bg.addColorStop(0, '#0f1216');
+  bg.addColorStop(1, darken(accentColor, 0.55));
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
 
-  // ---- Avatar (circular with accent ring) -----------------------------
+  const glowCx = AVATAR_LEFT + AVATAR_SIZE / 2;
+  const glowCy = AVATAR_TOP + AVATAR_SIZE / 2;
+  const glow = ctx.createRadialGradient(glowCx, glowCy, 0, glowCx, glowCy, CARD_HEIGHT);
+  glow.addColorStop(0, `${accentColor}55`); // ~33% alpha
+  glow.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+  // Subtle noise for texture.
+  for (let i = 0; i < 90; i += 1) {
+    ctx.fillStyle = `rgba(255,255,255,${(Math.random() * 0.05).toFixed(3)})`;
+    ctx.fillRect(Math.random() * CARD_WIDTH, Math.random() * CARD_HEIGHT, 2, 2);
+  }
+
+  // ---- Avatar (circular, with accent ring). The avatar is fetched from
+  // Discord's own CDN using the URL Discord already publishes for this user
+  // — never persisted on our side.
   const avatarUrl = member.user.displayAvatarURL({ extension: 'png', size: 256 });
   try {
     const avatar = await canvasLib.loadImage(avatarUrl);
-    const cx = AVATAR_LEFT + AVATAR_SIZE / 2;
-    const cy = AVATAR_TOP + AVATAR_SIZE / 2;
     // Accent ring
     ctx.beginPath();
-    ctx.arc(cx, cy, AVATAR_SIZE / 2 + 6, 0, Math.PI * 2);
+    ctx.arc(glowCx, glowCy, AVATAR_SIZE / 2 + 6, 0, Math.PI * 2);
     ctx.fillStyle = accentColor;
     ctx.fill();
-    // Circular clip and draw
+    // Circular clip and draw the avatar
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, AVATAR_SIZE / 2, 0, Math.PI * 2);
+    ctx.arc(glowCx, glowCy, AVATAR_SIZE / 2, 0, Math.PI * 2);
     ctx.closePath();
     ctx.clip();
     ctx.drawImage(avatar, AVATAR_LEFT, AVATAR_TOP, AVATAR_SIZE, AVATAR_SIZE);
     ctx.restore();
   } catch (err) {
     logger.debug(`welcome-card: could not load avatar for ${member.user.tag}: ${err.message}`);
-    // Draw a filled circle as a fallback so the layout doesn't look empty.
-    const cx = AVATAR_LEFT + AVATAR_SIZE / 2;
-    const cy = AVATAR_TOP + AVATAR_SIZE / 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, AVATAR_SIZE / 2, 0, Math.PI * 2);
+    ctx.arc(glowCx, glowCy, AVATAR_SIZE / 2, 0, Math.PI * 2);
     ctx.fillStyle = accentColor;
     ctx.fill();
   }
 
-  // ---- Text -----------------------------------------------------------
+  // ---- Text
   const textLeft = AVATAR_LEFT + AVATAR_SIZE + 40;
   const textMaxWidth = CARD_WIDTH - textLeft - 40;
 
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = titleColor;
-  ctx.font = `bold 42px "${cardFont}"`;
-  const title = fitText(ctx, titleText, textMaxWidth);
   ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
   ctx.shadowBlur = 8;
-  ctx.fillText(title, textLeft, CARD_HEIGHT / 2 + 6);
+
+  ctx.fillStyle = titleColor;
+  ctx.font = `bold 42px "${cardFont}"`;
+  ctx.fillText(fitText(ctx, titleText, textMaxWidth), textLeft, CARD_HEIGHT / 2 + 6);
 
   ctx.fillStyle = subtitleColor;
   ctx.font = `500 28px "${cardFont}"`;
-  const subtitle = fitText(ctx, subtitleText, textMaxWidth);
-  ctx.fillText(subtitle, textLeft, CARD_HEIGHT / 2 + 56);
+  ctx.fillText(fitText(ctx, subtitleText, textMaxWidth), textLeft, CARD_HEIGHT / 2 + 56);
   ctx.shadowBlur = 0;
 
-  // Small accent pill under the subtitle for visual polish.
-  const pillY = CARD_HEIGHT / 2 + 74;
-  roundedRect(ctx, textLeft, pillY, 60, 6, 3);
+  // Small accent pill for polish.
+  roundedRect(ctx, textLeft, CARD_HEIGHT / 2 + 74, 60, 6, 3);
   ctx.fillStyle = accentColor;
   ctx.fill();
 
   return canvas.toBuffer('image/png');
 }
 
-module.exports = {
-  renderWelcomeCard,
-  isSafePublicUrl,
-  hasCanvas: Boolean(canvasLib && cardFont),
-};
+module.exports = { renderWelcomeCard, hasCanvas: Boolean(canvasLib && cardFont) };

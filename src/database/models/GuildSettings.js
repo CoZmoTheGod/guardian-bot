@@ -50,8 +50,6 @@ module.exports = (sequelize) => {
 
       // ---- Welcome card (MEE6-style rendered image) ----
       welcomeCardEnabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
-      // Public HTTPS URL of a background image. Blank -> gradient fallback.
-      welcomeCardBackgroundUrl: { type: DataTypes.STRING, allowNull: true },
       // Supports the same {user.name} / {server} / {memberCount} placeholders as the text messages.
       welcomeCardTitle: {
         type: DataTypes.TEXT,

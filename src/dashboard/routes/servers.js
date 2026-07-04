@@ -101,7 +101,6 @@ module.exports = function createServersRouter(client) {
         welcomeDmMessage: (req.body.welcomeDmMessage ?? '').toString().slice(0, 1900),
         ghostPingPrevention: asBool(req.body.ghostPingPrevention),
         welcomeCardEnabled: asBool(req.body.welcomeCardEnabled),
-        welcomeCardBackgroundUrl: asStrOrNull(req.body.welcomeCardBackgroundUrl),
         welcomeCardTitle: (req.body.welcomeCardTitle ?? '{user.name} just joined the server')
           .toString()
           .slice(0, 200),

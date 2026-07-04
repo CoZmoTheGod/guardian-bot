@@ -79,7 +79,6 @@ async function runAutoMigrations() {
   const qi = sequelize.getQueryInterface();
   const additions = [
     ['guild_settings', 'welcomeCardEnabled', { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false }],
-    ['guild_settings', 'welcomeCardBackgroundUrl', { type: Sequelize.STRING, allowNull: true }],
     ['guild_settings', 'welcomeCardTitle', { type: Sequelize.TEXT, allowNull: false, defaultValue: '{user.name} just joined the server' }],
     ['guild_settings', 'welcomeCardSubtitle', { type: Sequelize.TEXT, allowNull: false, defaultValue: 'Member #{memberCount}' }],
     ['guild_settings', 'welcomeCardTitleColor', { type: Sequelize.STRING, allowNull: false, defaultValue: '#ffffff' }],
